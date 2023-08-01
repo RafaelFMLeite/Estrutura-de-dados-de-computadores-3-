@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib as mt
 from graph import Graph
 
 G = Graph()
@@ -31,11 +32,13 @@ for index, row in datasetGraph.iterrows():
     G.add_edge(row["Deputado1"], row["Deputado2"], row["Votos"])
 
 filtered_graph = None
+valid_parties = []
 
 for list_p in list_of_parties:
     if list_p not in datasetPoliticians["Partido"].values:
         print(f"O partido {list_p} não existe no dataset.")
     else:
+        valid_parties.append(list_p)
         if filtered_graph is None:
             filtered_graph = G.filter_party(list_p)
         else:
@@ -43,5 +46,5 @@ for list_p in list_of_parties:
 
 filtered_graph.normalize_edges(filtered_graph)
 
-thresholded_graph = filtered_graph.threshold(filtered_graph, threshold_value)
+thresholded_graph = filtered_graph.threshold(threshold_value)
 print(thresholded_graph)
