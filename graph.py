@@ -54,68 +54,74 @@ class Graph:
         self.adj_list[node]["votes"] = vote
 
     def normalize_edges(self, filtered_graph):
+        max_weight = float('-inf')
+        
+        for node1, neighbors in self.adj_list.items():
+            for node2, weight in neighbors.get('edges', {}).items():
+                if node1 != 'party' and node2 != 'party' and node1 != 'votes' and node2 != 'votes':
+                    max_weight = max(max_weight, weight)
+        
         for node1, neighbors in self.adj_list.items():
             for node2, weight in neighbors.get('edges', {}).items():
                 if node1 != 'party' and node2 != 'party' and node1 != 'votes' and node2 != 'votes':
                     votes_node1 = self.adj_list[node1].get('votes', 0)
                     votes_node2 = self.adj_list[node2].get('votes', 0)
-
-                    normalized_weight = weight / min(votes_node1, votes_node2)
-
+                
                     if votes_node1 > 0 and votes_node2 > 0:
+                        normalized_weight = weight / max_weight
                         filtered_graph.add_edge(node1, node2, normalized_weight)
-                        
-    def threshold(self, normalized_graph, number):
+
+                            
+    def threshold(self, threshold_value):
         filtered_graph = Graph()
 
-        for node1, neighbors in normalized_graph.adj_list.items():
+        for node1, neighbors in self.adj_list.items():
             for node2, weight in neighbors.get('edges', {}).items():
-                if weight >= number:
+                if weight >= threshold_value:
                     if node1 not in filtered_graph.adj_list:
                         filtered_graph.add_node(node1)
-                        filtered_graph.adj_list[node1]['party'] = normalized_graph.adj_list[node1]['party']
-                        filtered_graph.adj_list[node1]['votes'] = normalized_graph.adj_list[node1].get('votes', 0)
+                        filtered_graph.adj_list[node1]['party'] = self.adj_list[node1]['party']
+                        filtered_graph.adj_list[node1]['votes'] = self.adj_list[node1].get('votes', 0)
 
                     if node2 not in filtered_graph.adj_list:
                         filtered_graph.add_node(node2)
-                        filtered_graph.adj_list[node2]['party'] = normalized_graph.adj_list[node2]['party']
-                        filtered_graph.adj_list[node2]['votes'] = normalized_graph.adj_list[node2].get('votes', 0)
+                        filtered_graph.adj_list[node2]['party'] = self.adj_list[node2]['party']
+                        filtered_graph.adj_list[node2]['votes'] = self.adj_list[node2].get('votes', 0)
 
                     filtered_graph.add_edge(node1, node2, weight)
 
         return filtered_graph
-    
+
+        
     def __add__(self, other):
-        if not isinstance(other, Graph):
-            raise TypeError("Unsupported operand type(s) for +: 'Graph' and '{}'".format(type(other)))
-        merged_graph = Graph()
+            if not isinstance(other, Graph):
+                raise TypeError("Unsupported operand type(s) for +: 'Graph' and '{}'".format(type(other)))
+            merged_graph = Graph()
 
-        for node, node_data in self.adj_list.items():
-            merged_graph.add_node(node)
-            merged_graph.adj_list[node]['party'] = node_data['party']
-            merged_graph.adj_list[node]['votes'] = node_data.get('votes', 0)
-
-        for node1, neighbors in self.adj_list.items():
-            for node2, weight in neighbors.get('edges', {}).items():
-                merged_graph.add_edge(node1, node2, weight)
-
-        for node, node_data in other.adj_list.items():
-            if node not in merged_graph.adj_list:
+            for node, node_data in self.adj_list.items():
                 merged_graph.add_node(node)
                 merged_graph.adj_list[node]['party'] = node_data['party']
                 merged_graph.adj_list[node]['votes'] = node_data.get('votes', 0)
 
-        for node1, neighbors in other.adj_list.items():
-            for node2, weight in neighbors.get('edges', {}).items():
-                merged_graph.add_edge(node1, node2, weight)
+            for node1, neighbors in self.adj_list.items():
+                for node2, weight in neighbors.get('edges', {}).items():
+                    merged_graph.add_edge(node1, node2, weight)
 
-        return merged_graph
-    
+            for node, node_data in other.adj_list.items():
+                if node not in merged_graph.adj_list:
+                    merged_graph.add_node(node)
+                    merged_graph.adj_list[node]['party'] = node_data['party']
+                    merged_graph.adj_list[node]['votes'] = node_data.get('votes', 0)
 
+            for node1, neighbors in other.adj_list.items():
+                for node2, weight in neighbors.get('edges', {}).items():
+                    merged_graph.add_edge(node1, node2, weight)
+
+            return merged_graph
+        
     def __str__(self):
-        result = "Graph:\n"
-        for node, node_data in self.adj_list.items():
-            result += f"{node} (Party: {node_data['party']}, Votes: {node_data.get('votes', 0)}):\n"
-            for neighbor, weight in node_data.get('edges', {}).items():
-                result += f"    -> {neighbor} (Weight: {weight:.2f})\n"
-        return result
+            for node, node_data in self.adj_list.items():
+                result += f"{node} (Party: {node_data['party']}):\n"
+                for neighbor, weight in node_data.get('edges', {}).items():
+                    result += f"    -> {neighbor} (Weight: {weight:.2f})\n"
+            return result
