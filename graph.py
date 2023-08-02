@@ -120,6 +120,7 @@ class Graph:
             return merged_graph
         
     def __str__(self):
+            result = "" 
             for node, node_data in self.adj_list.items():
                 result += f"{node} (Party: {node_data['party']}):\n"
                 for neighbor, weight in node_data.get('edges', {}).items():
