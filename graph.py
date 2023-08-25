@@ -10,12 +10,14 @@ class Graph:
             self.adj_list[node] = {}
             self.party[node] = party
             self.votes[node] = votes
-
     
     def add_edge(self, node1, node2, votes):
         if node1 in self.adj_list and node2 in self.adj_list:
             self.adj_list[node1][node2] = votes
 
+    def two_way_edges(self, node1, node2, votes):
+        self.add_edge(node1, node2, votes)
+        self.add_edge(node2, node1, votes)
     
     def filter(self, parties):
         filtered_graph = Graph()
