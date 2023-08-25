@@ -5,26 +5,26 @@ import seaborn as sns
 import numpy as np
 from graph import Graph
 
-#Organização das colunas dos arquivos csv
+# Organização das colunas dos arquivos csv
 politicianColumns = ["Congressman", "Party", "Votes"]
 graphColumns = ["Congressman1", "Congressman2", "Votes"]
 
-#instância do grafo
+# Instância do grafo
 G = Graph()
 
-#input de datas para leitura dos arquivo csv
+# Input de datas para leitura dos arquivos CSV
 date = int(input("Digite uma data entre 2002 e 2023: "))
 while not (2002 <= date <= 2023):
     date = int(input("Digite uma data válida: "))
 
-#Criação do dataframe
+# Criação do dataframe
 datasetPolitician = pd.read_csv(f"dataset/politicians{date}.csv", delimiter=";", header=None, names=politicianColumns)
 datasetGraph = pd.read_csv(f"dataset/graph{date}.csv", delimiter=";", header=None, names=graphColumns)
 
-#Condicional para utilização do filtro de partidos
-use_filter = input(str("Você gostaria de usaria de usar o filtro de partidos? digite sim ou não ")).upper()
+# Condicional para utilização do filtro de partidos
+use_filter = input(str("Você gostaria de usar o filtro de partidos? Digite sim ou não: ")).upper()
 
-if(use_filter == "SIM"):
+if use_filter == "SIM":
     parties = input("Digite os nomes dos partidos separados por espaços: ").upper()
     list_of_parties = parties.split()
 
@@ -33,25 +33,25 @@ if(use_filter == "SIM"):
             print(f"O partido {party} não foi encontrado e será removido da lista")
             list_of_parties.remove(party)
 
-elif(use_filter == "NAO" or use_filter == "NÃO"):
+elif use_filter == "NAO" or use_filter == "NÃO":
     list_of_parties = []
 
     for party in datasetPolitician["Party"].values:
         list_of_parties.append(party)
 
 else:
-    print("Comando não indentificado!")
+    print("Comando não identificado!")
 
-#Eliminação das arestas com valor inferior ou igual threshold value
-threshold_value = float(input("Digite o valor do threshold entre 0.1 a 1.0: "))
-while not (0.1 <= threshold_value <= 1.0):
-    threshold_value = input(float("Digite um valor valido: "))
+# Eliminação das arestas com valor inferior ou igual ao threshold value
+threshold_value = float(input("Digite o valor do threshold entre 0.1 a 0.9: "))
+while not (0.1 <= threshold_value <= 0.9):
+    threshold_value = float(input("Digite um valor válido: "))
 
-#Iteração e preenchimento de todos os nós 
+# Iteração e preenchimento de todos os nós
 for index, data in datasetPolitician.iterrows():
     G.add_node(data["Congressman"], data["Party"], data["Votes"])
 
-#Conexão entre um nó e outro
+# Conexão entre um nó e outro
 for index, row in datasetGraph.iterrows():
     congressman1 = row["Congressman1"]
     congressman2 = row["Congressman2"]
@@ -64,23 +64,23 @@ normalized_graph = G.normalize_edges(filtered_graph)
 threshold_graph = G.threshold(normalized_graph, threshold_value)
 inversion_graph = G.invert_weights(threshold_graph)
 
-#Transformando o grafo G para a lib networkX para utilizar as funções desejadas 
+# Transformando o grafo G para a biblioteca NetworkX para utilizar as funções desejadas
 nx_graph = nx.Graph()
 
 for node, data in inversion_graph.adj_list.items():
     for neighbor, weight in data.items():
         nx_graph.add_edge(node, neighbor, weight=weight)
 
-#Obtenção da centralidade ofericida pela lib NetworkX
+# Obtenção da centralidade oferecida pela biblioteca NetworkX
 betweenness_centrality = nx.betweenness_centrality(nx_graph)
 nodes = list(betweenness_centrality.keys())
 centralities = list(betweenness_centrality.values())
 
 # Inicialização da plotagem de gráfico
-#Ordenação de forma crescente dos nós do grafo para plotagem do gráfico
+# Ordenação de forma crescente dos nós do grafo para plotagem do gráfico
 nodes_sorted, centralities_sorted = zip(*sorted(zip(nodes, centralities), key=lambda x: x[1]))
 
-#Plotagem do gráfico em barra feita pela lib matplotlib
+# Plotagem do gráfico em barra feita pela biblioteca Matplotlib
 plt.figure(figsize=(10, 6))
 plt.bar(nodes_sorted, centralities_sorted, width=0.8)
 plt.xlabel("Deputados")
@@ -117,3 +117,32 @@ plt.tight_layout()
 plt.savefig("correlation_heatmap.png")
 plt.show()
 
+# Seção adicionada para colorir nós comuns com base em seus partidos políticos
+# Criar um dicionário de cores para cada partido político
+party_colors = {}
+for party in list_of_parties:
+    party_colors[party] = sns.color_palette("Set2", len(list_of_parties))[list_of_parties.index(party)]
+
+# Criar uma lista de nós a partir do grafo personalizado threshold_graph
+nodes_threshold = list(threshold_graph.adj_list.keys())
+
+# Atribuir cores com base nos partidos políticos dos nós
+node_colors = [party_colors[datasetPolitician[datasetPolitician['Congressman'] == node]['Party'].values[0]] for node in nodes_threshold]
+
+
+# Criar uma cópia do grafo thresholded em NetworkX
+thresholded_nx_graph = nx.Graph()
+
+# Adicionar nós e arestas ao grafo thresholded em NetworkX
+for node, data in threshold_graph.adj_list.items():
+    thresholded_nx_graph.add_node(node)
+    for neighbor, weight in data.items():
+        thresholded_nx_graph.add_edge(node, neighbor, weight=weight)
+
+# Plotar o grafo thresholded com cores baseadas em partidos políticos
+plt.figure(figsize=(12, 8))
+spring_layout = nx.spring_layout(thresholded_nx_graph, seed=42)
+nx.draw(thresholded_nx_graph, spring_layout, with_labels=True, node_size=100, font_size=8, node_color=node_colors)
+plt.title("Grafo")
+plt.tight_layout()
+plt.show()
